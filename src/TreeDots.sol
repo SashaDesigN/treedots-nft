@@ -23,16 +23,16 @@ contract TreeDots is ERC721, ERC2981, Ownable {
     // Constants
     // -----------------------------------------------------------------------
 
-    uint256 public constant MAX_SUPPLY     = 1_000;
-    uint256 public constant SPECIAL_SUPPLY = 20;      // first 20 are three-green
-    uint256 public constant MINT_PRICE     = 0.04 ether;
-    uint96  public constant ROYALTY_BPS    = 200;     // 2 %
+    uint256 public constant MAX_SUPPLY = 1_000;
+    uint256 public constant SPECIAL_SUPPLY = 20; // first 20 are three-green
+    uint256 public constant MINT_PRICE = 0.04 ether;
+    uint96 public constant ROYALTY_BPS = 200; // 2 %
 
     // Dot color IDs
     uint8 private constant YELLOW = 0;
-    uint8 private constant GREEN  = 1;
-    uint8 private constant BLUE   = 2;
-    uint8 private constant RED    = 3;
+    uint8 private constant GREEN = 1;
+    uint8 private constant BLUE = 2;
+    uint8 private constant RED = 3;
 
     // -----------------------------------------------------------------------
     // Storage
@@ -68,11 +68,13 @@ contract TreeDots is ERC721, ERC2981, Ownable {
     // -----------------------------------------------------------------------
 
     function mint() external payable {
-        if (msg.value < MINT_PRICE)    revert InsufficientPayment();
+        if (msg.value < MINT_PRICE) revert InsufficientPayment();
         if (_totalMinted >= MAX_SUPPLY) revert MaxSupplyReached();
 
         uint256 tokenId = _totalMinted;
-        unchecked { _totalMinted++; }
+        unchecked {
+            _totalMinted++;
+        }
 
         _dots[tokenId] = _generateDots(tokenId);
         _safeMint(msg.sender, tokenId);
@@ -84,9 +86,7 @@ contract TreeDots is ERC721, ERC2981, Ownable {
      *      Positions map to [20, 250] on the 300×300 canvas (dot radius = 22 px).
      */
     function _generateDots(uint256 tokenId) private view returns (bytes9) {
-        bytes32 seed = keccak256(
-            abi.encodePacked(block.prevrandao, tokenId, msg.sender, block.timestamp)
-        );
+        bytes32 seed = keccak256(abi.encodePacked(block.prevrandao, tokenId, msg.sender, block.timestamp));
 
         // Positions: 20 + (seed_byte % 231) → range [20, 250], max fits in uint8
         uint8 x0 = uint8(20 + uint8(seed[3]) % 231);
@@ -102,7 +102,9 @@ contract TreeDots is ERC721, ERC2981, Ownable {
 
         if (tokenId < SPECIAL_SUPPLY) {
             // Genesis set: three green dots
-            c0 = GREEN; c1 = GREEN; c2 = GREEN;
+            c0 = GREEN;
+            c1 = GREEN;
+            c2 = GREEN;
         } else {
             // Random colors 0–3
             c0 = uint8(seed[0]) % 4;
@@ -120,9 +122,8 @@ contract TreeDots is ERC721, ERC2981, Ownable {
 
         // Pack 9 uint8 values into bytes9 via uint72 bit-shifting
         return bytes9(
-            uint72(c0) << 64 | uint72(c1) << 56 | uint72(c2) << 48 |
-            uint72(x0) << 40 | uint72(x1) << 32 | uint72(x2) << 24 |
-            uint72(y0) << 16 | uint72(y1) <<  8 | uint72(y2)
+            uint72(c0) << 64 | uint72(c1) << 56 | uint72(c2) << 48 | uint72(x0) << 40 | uint72(x1) << 32 | uint72(x2)
+                << 24 | uint72(y0) << 16 | uint72(y1) << 8 | uint72(y2)
         );
     }
 
@@ -135,9 +136,9 @@ contract TreeDots is ERC721, ERC2981, Ownable {
 
         bytes9 d = _dots[tokenId];
 
-        uint8   c0 = uint8(d[0]);
-        uint8   c1 = uint8(d[1]);
-        uint8   c2 = uint8(d[2]);
+        uint8 c0 = uint8(d[0]);
+        uint8 c1 = uint8(d[1]);
+        uint8 c2 = uint8(d[2]);
         uint256 x0 = uint256(uint8(d[3]));
         uint256 x1 = uint256(uint8(d[4]));
         uint256 x2 = uint256(uint8(d[5]));
@@ -152,7 +153,7 @@ contract TreeDots is ERC721, ERC2981, Ownable {
             _circle(x0, y0, _colorHex(c0)),
             _circle(x1, y1, _colorHex(c1)),
             _circle(x2, y2, _colorHex(c2)),
-            '</svg>'
+            "</svg>"
         );
 
         // Build JSON metadata using abi.encodePacked; SVG is base64-inlined
@@ -163,39 +164,37 @@ contract TreeDots is ERC721, ERC2981, Ownable {
             '"image":"data:image/svg+xml;base64,',
             Base64.encode(svg),
             '","attributes":[',
-            '{"trait_type":"Dot 1","value":"', _colorName(c0), '"},',
-            '{"trait_type":"Dot 2","value":"', _colorName(c1), '"},',
-            '{"trait_type":"Dot 3","value":"', _colorName(c2), '"}',
-            ']}'
+            '{"trait_type":"Dot 1","value":"',
+            _colorName(c0),
+            '"},',
+            '{"trait_type":"Dot 2","value":"',
+            _colorName(c1),
+            '"},',
+            '{"trait_type":"Dot 3","value":"',
+            _colorName(c2),
+            '"}',
+            "]}"
         );
 
         // Encode full JSON as base64 data URI using abi.encodePacked
-        return string(
-            abi.encodePacked("data:application/json;base64,", Base64.encode(metadata))
-        );
+        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(metadata)));
     }
 
-    function _circle(uint256 cx, uint256 cy, string memory fill)
-        private pure returns (bytes memory)
-    {
-        return abi.encodePacked(
-            '<circle cx="', cx.toString(),
-            '" cy="', cy.toString(),
-            '" r="22" fill="', fill, '"/>'
-        );
+    function _circle(uint256 cx, uint256 cy, string memory fill) private pure returns (bytes memory) {
+        return abi.encodePacked('<circle cx="', cx.toString(), '" cy="', cy.toString(), '" r="22" fill="', fill, '"/>');
     }
 
     function _colorHex(uint8 id) private pure returns (string memory) {
         if (id == YELLOW) return "#FFD700";
-        if (id == GREEN)  return "#00C853";
-        if (id == BLUE)   return "#2979FF";
+        if (id == GREEN) return "#00C853";
+        if (id == BLUE) return "#2979FF";
         return "#FF1744"; // RED
     }
 
     function _colorName(uint8 id) private pure returns (string memory) {
         if (id == YELLOW) return "Yellow";
-        if (id == GREEN)  return "Green";
-        if (id == BLUE)   return "Blue";
+        if (id == GREEN) return "Green";
+        if (id == BLUE) return "Blue";
         return "Red";
     }
 
@@ -211,14 +210,21 @@ contract TreeDots is ERC721, ERC2981, Ownable {
      * @notice Returns the raw dot data for a token (useful for UIs / indexers).
      */
     function getDots(uint256 tokenId)
-        external view
+        external
+        view
         returns (uint8 c0, uint8 c1, uint8 c2, uint8 x0, uint8 x1, uint8 x2, uint8 y0, uint8 y1, uint8 y2)
     {
         _requireOwned(tokenId);
         bytes9 d = _dots[tokenId];
-        c0 = uint8(d[0]); c1 = uint8(d[1]); c2 = uint8(d[2]);
-        x0 = uint8(d[3]); x1 = uint8(d[4]); x2 = uint8(d[5]);
-        y0 = uint8(d[6]); y1 = uint8(d[7]); y2 = uint8(d[8]);
+        c0 = uint8(d[0]);
+        c1 = uint8(d[1]);
+        c2 = uint8(d[2]);
+        x0 = uint8(d[3]);
+        x1 = uint8(d[4]);
+        x2 = uint8(d[5]);
+        y0 = uint8(d[6]);
+        y1 = uint8(d[7]);
+        y2 = uint8(d[8]);
     }
 
     // -----------------------------------------------------------------------
@@ -238,10 +244,7 @@ contract TreeDots is ERC721, ERC2981, Ownable {
     // ERC-165
     // -----------------------------------------------------------------------
 
-    function supportsInterface(bytes4 interfaceId)
-        public view override(ERC721, ERC2981)
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC2981) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }
